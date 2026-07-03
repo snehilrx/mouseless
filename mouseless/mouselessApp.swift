@@ -1,17 +1,7 @@
 import SwiftUI
-import SwiftData
 
 @main
 struct mouselessApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
 
     init() {
         checkAccessibilityPermissions()
@@ -36,7 +26,6 @@ struct mouselessApp: App {
     var body: some Scene {
         MenuBarExtra {
             ContentView()
-                .modelContainer(sharedModelContainer)
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "keyboard")

@@ -6,25 +6,17 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @State private var searchText = ""
     @State private var selection: SidebarItem? = .grid
-
-    @State private var trainerVM = TrainerViewModel()
-    @FocusState private var isSearchFocused: Bool
 
     enum SidebarItem: String, CaseIterable, Identifiable {
         case grid = "Grid"
-        case trainer = "Trainer"
         var id: String { self.rawValue }
 
         var icon: String {
             switch self {
             case .grid: return "grid"
-            case .trainer: return "graduationcap"
             }
         }
     }
@@ -54,8 +46,6 @@ struct ContentView: View {
                 switch selection {
                 case .grid:
                     gridView
-                case .trainer:
-                    trainerView
                 case .none:
                     Text("Select an item").foregroundColor(.secondary)
                 }
@@ -113,7 +103,7 @@ struct ContentView: View {
                     Text("Quick Reference")
                         .font(.headline)
 
-                VStack(spacing: 0) {
+                    VStack(spacing: 0) {
                         ShortcutRow(keys: "CapsLock", desc: "Toggle Grid Overlay")
                         Divider().padding(.vertical, 8)
                         ShortcutRow(keys: "W A S D", desc: "Subdivide / Navigate")
@@ -135,7 +125,7 @@ struct ContentView: View {
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.1), lineWidth: 1))
                 }
 
-            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 12) {
                     Label("Window Management (Snap)", systemImage: "macwindow")
                         .font(.headline)
                     Text("While the Grid is active, hold **Shift** to enter Snap Mode. This allows you to instantly reposition the current window.")
@@ -219,156 +209,6 @@ struct ContentView: View {
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.1), lineWidth: 1))
         }
     }
-
-    private var trainerView: some View {
-        List {
-            if trainerVM.isSessionActive {
-                trainerActiveContent
-            } else {
-                trainerLandingContent
-            }
-        }
-        .listStyle(.inset)
-        .navigationTitle("Shortcut Trainer")
-    }
-
-    private var trainerActiveContent: some View {
-        Group {
-            Section {
-                HStack(spacing: 20) {
-                    ScoreBox(title: "SCORE", value: "\(trainerVM.score)/\(trainerVM.total)", color: .blue)
-                    ScoreBox(title: "STREAK", value: "\(trainerVM.streak)", color: .orange, isStreak: true)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-            }
-
-            if let current = trainerVM.currentShortcut {
-                Section {
-                    VStack(spacing: 32) {
-                        Text(current.category)
-                            .font(.system(.caption, design: .monospaced))
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(Color.accentColor.opacity(0.1)))
-                            .foregroundColor(.accentColor)
-
-                        Text(current.description)
-                            .font(.title2.bold())
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal)
-
-                        VStack(spacing: 12) {
-                            Text(trainerVM.userInput.isEmpty ? "Perform the shortcut" : trainerVM.userInput.uppercased())
-                                .font(.system(size: 32, weight: .black, design: .monospaced))
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(Color.primary.opacity(0.05))
-                                )
-
-                            if let feedback = trainerVM.feedback {
-                                Text(feedback)
-                                    .font(.headline)
-                                    .foregroundColor(trainerVM.isCorrect == true ? .green : .red)
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                            }
-                        }
-                    }
-                    .padding(.vertical, 40)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 24)
-                            .fill(Color(nsColor: .windowBackgroundColor))
-                            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
-                    )
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 0))
-            }
-
-            Section {
-                Button(action: { withAnimation { trainerVM.stopSession() } }) {
-                    Text("End Practice Session")
-                        .font(.headline)
-                        .foregroundColor(.red)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.plain)
-                .padding()
-            }
-            .listRowBackground(Color.clear)
-        }
-    }
-
-    struct ScoreBox: View {
-        let title: String
-        let value: String
-        let color: Color
-        var isStreak: Bool = false
-
-        var body: some View {
-            VStack(spacing: 4) {
-                Text(title)
-                    .font(.caption2.bold())
-                    .foregroundColor(.secondary)
-                Text(value)
-                    .font(.system(.title, design: .rounded))
-                    .fontWeight(.bold)
-                    .foregroundColor(color)
-                if isStreak {
-                    Text("🔥").font(.caption)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(RoundedRectangle(cornerRadius: 12).fill(color.opacity(0.1)))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.2), lineWidth: 1))
-        }
-    }
-
-    private var trainerLandingContent: some View {
-        Group {
-            Section {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Master your workflow without the mouse.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    Button("Start Random Practice") {
-                        withAnimation { trainerVM.startSession(category: nil) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                }
-                .padding(.vertical, 5)
-            }
-
-            Section("Shortcut Categories") {
-                ForEach(ShortcutCategory.allCases, id: \.self) { category in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(category.rawValue).font(.body).fontWeight(.medium)
-                            Text("\(shortcutsData.filter { $0.category == category.rawValue }.count) shortcuts")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Button("Practice") {
-                            withAnimation { trainerVM.startSession(category: category.rawValue) }
-                        }
-                        .buttonStyle(.bordered)
-
-                        NavigationLink("", destination: CheatSheetView(category: category.rawValue))
-                            .opacity(0).frame(width: 0)
-                    }
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Components
@@ -401,53 +241,12 @@ struct ShortcutRow: View {
     }
 }
 
-struct CheatSheetView: View {
-    let category: String
-    var body: some View {
-        List(shortcutsData.filter { $0.category == category }) { shortcut in
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(shortcut.description).font(.headline)
-                    Text(shortcut.command).monospaced().foregroundColor(.accentColor)
-                }
-            }
-        }
-        .navigationTitle(category)
-    }
-}
-
 struct MeshBackgroundView: View {
     var body: some View {
         Color(nsColor: .windowBackgroundColor)
     }
 }
 
-// MARK: - Extensions
-
-extension View {
-    func onKeyDown(action: @escaping (NSEvent) -> Void) -> some View {
-        self.background(KeyDownHandler(action: action))
-    }
-}
-
-struct KeyDownHandler: NSViewRepresentable {
-    let action: (NSEvent) -> Void
-    func makeNSView(context: Context) -> NSView {
-        let view = KeyView()
-        view.onKeyDown = action
-        return view
-    }
-    func updateNSView(_ nsView: NSView, context: Context) {}
-    class KeyView: NSView {
-        var onKeyDown: ((NSEvent) -> Void)?
-        override var acceptsFirstResponder: Bool { true }
-        override func keyDown(with event: NSEvent) {
-            onKeyDown?(event)
-        }
-    }
-}
-
 #Preview {
     ContentView()
-        .modelContainer(for: [Item.self], inMemory: true)
 }

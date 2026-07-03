@@ -132,6 +132,11 @@ class WindowManager: ObservableObject {
         NSRunningApplication(processIdentifier: snap.pid)?.activate(options: .activateIgnoringOtherApps)
     }
 
+    /// Locks a specific candidate as the current target.
+    func lockCandidate(_ candidate: WindowCandidate) {
+        establishSnapshot(for: candidate)
+    }
+
     // MARK: - Resolution Engine
 
     func resolveAXElement(for wid: CGWindowID) -> AXUIElement? {
@@ -264,6 +269,27 @@ class WindowManager: ObservableObject {
     nonisolated static func performAXPositionWrite(_ window: AXUIElement, point: CGPoint) {
         var p = point
         if let pv = AXValueCreate(.cgPoint, &p) { AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, pv) }
+    }
+
+    /// Adjusts the size of the currently focused window by a delta.
+    func adjustSize(dw: CGFloat, dh: CGFloat) {
+        guard let snap = currentSnapshot else { return }
+        let currentFrame = axFrameOfWindow(snap.axWindow).map { axFrameToCocoa($0) } ?? snap.frame
+        var newFrame = currentFrame
+        newFrame.size.width += dw
+        newFrame.size.height += dh
+
+        // Update snapshot frame to reflect current intent
+        self.currentSnapshot = WindowSnapshot(
+            pid: snap.pid,
+            axWindow: snap.axWindow,
+            cgWindowID: snap.cgWindowID,
+            appName: snap.appName,
+            frame: newFrame,
+            bundleID: snap.bundleID
+        )
+
+        setWindowFrame(snap.axWindow, cocoaFrame: newFrame)
     }
 
     // MARK: - Float Heuristics Logic
